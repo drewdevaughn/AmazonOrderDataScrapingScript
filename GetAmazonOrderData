@@ -1,0 +1,68 @@
+(function() {
+    function downloadCSV(csv, filename) {
+        let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        let link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function extractOrders() {
+        let orders = [];
+        document.querySelectorAll('.order').forEach(order => {
+            let orderId = order.querySelector('[id^="orderID-"]')?.textContent.trim() || 'N/A';
+            let date = order.querySelector('.order-date')?.textContent.trim() || 'N/A';
+            let total = order.querySelector('.order-total')?.textContent.trim() || 'N/A';
+            let items = [];
+
+            order.querySelectorAll('.a-fixed-left-grid-inner').forEach(item => {
+                let itemName = item.querySelector('.a-col-right .a-link-normal')?.textContent.trim() || 'Unknown Item';
+                let itemPrice = item.querySelector('.a-col-right .gift-card-instance .a-column.a-span2')?.textContent.trim() || 'N/A';
+                let recipient = item.querySelector('.a-col-right .recipient')?.textContent.trim() || 'N/A';
+                let status = item.querySelector('.a-col-right .a-span-last')?.textContent.trim() || 'N/A';
+                let message = item.querySelector('.a-col-right .a-spacing-top-small div:nth-child(2)')?.textContent.trim() || 'No Message';
+
+                items.push({
+                    Name: itemName,
+                    Price: itemPrice,
+                    Recipient: recipient,
+                    Status: status,
+                    Message: message
+                });
+            });
+
+            orders.push({
+                OrderID: orderId,
+                Date: date,
+                Total: total,
+                Items: items
+            });
+        });
+
+        return orders;
+    }
+
+    function convertToCSV(orderArray) {
+        let csvRows = [];
+        csvRows.push("Order ID, Date, Total, Item Name, Price, Recipient, Status, Message");
+
+        orderArray.forEach(order => {
+            order.Items.forEach(item => {
+                csvRows.push(`"${order.OrderID}","${order.Date}","${order.Total}","${item.Name}","${item.Price}","${item.Recipient}","${item.Status}","${item.Message}"`);
+            });
+        });
+
+        return csvRows.join("\n");
+    }
+
+    let orders = extractOrders();
+    if (orders.length === 0) {
+        alert('No orders found. Make sure you are on the order history page and have scrolled to load orders.');
+        return;
+    }
+
+    let csvData = convertToCSV(orders);
+    downloadCSV(csvData, 'amazon_orders.csv');
+})();
